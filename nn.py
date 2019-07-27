@@ -1,8 +1,6 @@
 """
-Have fun with the number of epochs!
-
-Be warned that if you increase them too much,
-the VM will time out :)
+this basic miniflow structure has almost every core component of a general Neural Network.
+we keep this implementation simple in order to ease the understanding of the core concepts.
 """
 
 from sklearn.datasets import load_boston
