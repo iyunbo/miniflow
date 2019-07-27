@@ -10,12 +10,14 @@ class Node:
         `inbound_nodes`: A list of nodes with edges into this node.
     """
 
-    def __init__(self, inbound_nodes=[]):
+    def __init__(self, inbound_nodes=None):
         """
         Node's constructor (runs when the object is instantiated). Sets
         properties that all nodes need.
         """
         # A list of nodes with edges into this node.
+        if inbound_nodes is None:
+            inbound_nodes = []
         self.inbound_nodes = inbound_nodes
         # The eventual value of this node. Set by running
         # the forward() method.
@@ -79,19 +81,19 @@ class Linear(Node):
     Represents a node that performs a linear transform.
     """
 
-    def __init__(self, X, W, b):
+    def __init__(self, x, w, b):
         # The base class (Node) constructor. Weights and bias
         # are treated like inbound nodes.
-        Node.__init__(self, [X, W, b])
+        Node.__init__(self, [x, w, b])
 
     def forward(self):
         """
         Performs the math behind a linear transform.
         """
-        X = self.inbound_nodes[0].value
-        W = self.inbound_nodes[1].value
+        x = self.inbound_nodes[0].value
+        w = self.inbound_nodes[1].value
         b = self.inbound_nodes[2].value
-        self.value = np.dot(X, W) + b
+        self.value = np.dot(x, w) + b
 
     def backward(self):
         """
@@ -121,7 +123,8 @@ class Sigmoid(Node):
         # The base class constructor.
         Node.__init__(self, [node])
 
-    def _sigmoid(self, x):
+    @staticmethod
+    def _sigmoid(x):
         """
         This method is separate from `forward` because it
         will be used with `backward` as well.
@@ -159,6 +162,8 @@ class MSE(Node):
         """
         # Call the base class' constructor.
         Node.__init__(self, [y, a])
+        self.m = None
+        self.diff = None
 
     def forward(self):
         """
@@ -200,35 +205,35 @@ def topological_sort(feed_dict):
 
     input_nodes = [n for n in feed_dict.keys()]
 
-    G = {}
+    g = {}
     nodes = [n for n in input_nodes]
     while len(nodes) > 0:
         n = nodes.pop(0)
-        if n not in G:
-            G[n] = {'in': set(), 'out': set()}
+        if n not in g:
+            g[n] = {'in': set(), 'out': set()}
         for m in n.outbound_nodes:
-            if m not in G:
-                G[m] = {'in': set(), 'out': set()}
-            G[n]['out'].add(m)
-            G[m]['in'].add(n)
+            if m not in g:
+                g[m] = {'in': set(), 'out': set()}
+            g[n]['out'].add(m)
+            g[m]['in'].add(n)
             nodes.append(m)
 
-    L = []
-    S = set(input_nodes)
-    while len(S) > 0:
-        n = S.pop()
+    lin = []
+    s = set(input_nodes)
+    while len(s) > 0:
+        n = s.pop()
 
         if isinstance(n, Input):
             n.value = feed_dict[n]
 
-        L.append(n)
+        lin.append(n)
         for m in n.outbound_nodes:
-            G[n]['out'].remove(m)
-            G[m]['in'].remove(n)
+            g[n]['out'].remove(m)
+            g[m]['in'].remove(n)
             # if no other incoming edges add to S
-            if len(G[m]['in']) == 0:
-                S.add(m)
-    return L
+            if len(g[m]['in']) == 0:
+                s.add(m)
+    return lin
 
 
 def forward_and_backward(graph):
